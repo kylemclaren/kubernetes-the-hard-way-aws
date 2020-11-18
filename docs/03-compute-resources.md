@@ -1,8 +1,8 @@
 # Provisioning Compute Resources
 
-Kubernetes requires a set of machines to host the Kubernetes control plane and the worker nodes where containers are ultimately run. In this lab you will provision the compute resources required for running a secure and highly available Kubernetes cluster across a single [compute zone](https://cloud.google.com/compute/docs/regions-zones/regions-zones).
+Kubernetes requires a set of machines to host the Kubernetes control plane and the worker nodes where containers are ultimately run. In this lab you will provision the compute resources required for running a secure and highly available Kubernetes cluster.
 
-> Ensure a default compute zone and region have been set as described in the [Prerequisites](01-prerequisites.md#set-a-default-compute-region-and-zone) lab.
+> Ensure a default compute region has been set as described in the [Prerequisites](01-prerequisites.md#set-a-default-compute-region-and-zone) lab.
 
 ## Networking
 
@@ -10,33 +10,55 @@ The Kubernetes [networking model](https://kubernetes.io/docs/concepts/cluster-ad
 
 > Setting up network policies is out of scope for this tutorial.
 
-### Virtual Private Cloud Network
+### Virtual Private Cloud (VPC)
 
-In this section a dedicated [Virtual Private Cloud](https://cloud.google.com/compute/docs/networks-and-firewalls#networks) (VPC) network will be setup to host the Kubernetes cluster.
+In this section a dedicated [Virtual Private Cloud](http://aws.amazon.com/documentation/vpc) (VPC) network will be setup to host the Kubernetes cluster.
 
-Create the `kubernetes-the-hard-way` custom VPC network:
+Create the custom VPC network and subnet. A [subnet](https://docs.aws.amazon.com/vpc/latest/userguide/working-with-vpcs.html#AddaSubnets) must be provisioned with an IP address range large enough to assign a private IP address to each node in the Kubernetes cluster.
 
-```
-gcloud compute networks create kubernetes-the-hard-way --subnet-mode custom
-```
+Here we create the VPC and specify a custom CIDR block for the subnet, in one step:
 
-A [subnet](https://cloud.google.com/compute/docs/vpc/#vpc_networks_and_subnets) must be provisioned with an IP address range large enough to assign a private IP address to each node in the Kubernetes cluster.
-
-Create the `kubernetes` subnet in the `kubernetes-the-hard-way` VPC network:
-
-```
-gcloud compute networks subnets create kubernetes \
-  --network kubernetes-the-hard-way \
-  --range 10.240.0.0/24
+```sh
+aws ec2 create-vpc \
+  --cidr-block 10.240.0.0/24
 ```
 
 > The `10.240.0.0/24` IP address range can host up to 254 compute instances.
 
+> output
+
+```json
+{
+    "Vpc": {
+        "CidrBlock": "10.240.0.0/24",
+        "DhcpOptionsId": "dopt-cad0a1b0",
+        "State": "pending",
+        "VpcId": "vpc-0f4191f90bd8c4e71",
+        "OwnerId": "<AWS_ACCOUNT_ID>",
+        "InstanceTenancy": "default",
+        "Ipv6CidrBlockAssociationSet": [],
+        "CidrBlockAssociationSet": [
+            {
+                "AssociationId": "vpc-cidr-assoc-0c26451137d95ec4c",
+                "CidrBlock": "10.240.0.0/24",
+                "CidrBlockState": {
+                    "State": "associated"
+                }
+            }
+        ],
+        "IsDefault": false
+    }
+```
+
+You'll want to note down the `VpcId` for later use.
+
 ### Firewall Rules
+
+When dealing with Firewalls in AWS, you are usually working with the concept of a "Security Group".
 
 Create a firewall rule that allows internal communication across all protocols:
 
-```
+```sh
 gcloud compute firewall-rules create kubernetes-the-hard-way-allow-internal \
   --allow tcp,udp,icmp \
   --network kubernetes-the-hard-way \
@@ -45,7 +67,7 @@ gcloud compute firewall-rules create kubernetes-the-hard-way-allow-internal \
 
 Create a firewall rule that allows external SSH, ICMP, and HTTPS:
 
-```
+```sh
 gcloud compute firewall-rules create kubernetes-the-hard-way-allow-external \
   --allow tcp:22,tcp:6443,icmp \
   --network kubernetes-the-hard-way \
@@ -56,7 +78,7 @@ gcloud compute firewall-rules create kubernetes-the-hard-way-allow-external \
 
 List the firewall rules in the `kubernetes-the-hard-way` VPC network:
 
-```
+```sh
 gcloud compute firewall-rules list --filter="network:kubernetes-the-hard-way"
 ```
 
@@ -72,7 +94,7 @@ kubernetes-the-hard-way-allow-internal  kubernetes-the-hard-way  INGRESS    1000
 
 Allocate a static IP address that will be attached to the external load balancer fronting the Kubernetes API Servers:
 
-```
+```sh
 gcloud compute addresses create kubernetes-the-hard-way \
   --region $(gcloud config get-value compute/region)
 ```
@@ -217,6 +239,7 @@ Type `exit` at the prompt to exit the `controller-0` compute instance:
 ```
 $USER@controller-0:~$ exit
 ```
+
 > output
 
 ```
