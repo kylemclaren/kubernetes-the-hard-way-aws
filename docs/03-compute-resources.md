@@ -68,13 +68,10 @@ aws ec2 describe-subnets --filters Name="subnet-id",Values="subnet-0e41b90871027
 
 When dealing with Firewalls in AWS, you are usually working with the concept of a "Security Group".
 
-Create a firewall rule that allows internal communication across all protocols:
+Create a new security group and associate it with the VPC we created in the previous step
 
 ```sh
-gcloud compute firewall-rules create kubernetes-the-hard-way-allow-internal \
-  --allow tcp,udp,icmp \
-  --network kubernetes-the-hard-way \
-  --source-ranges 10.240.0.0/24,10.200.0.0/16
+aws ec2 create-security-group --group-name kubernetes-the-hard-way --description "Security group for Kubernetes the Hard Way cluster" --vpc-id vpc-0f4191f90bd8c4e71
 ```
 
 Create a firewall rule that allows external SSH, ICMP, and HTTPS:
