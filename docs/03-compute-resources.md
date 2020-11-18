@@ -52,6 +52,18 @@ aws ec2 create-vpc \
 
 You'll want to note down the `VpcId` for later use.
 
+Next, we create a subnet for the VPC we just, using the same CIDR block:
+
+```sh
+aws ec2 create-subnet \
+ --vpc-id vpc-0f4191f90bd8c4e71 \
+ --cidr-block 10.240.0.0/24
+```
+
+```sh
+aws ec2 describe-subnets --filters Name="subnet-id",Values="subnet-0e41b90871027db5b"
+```
+
 ### Firewall Rules
 
 When dealing with Firewalls in AWS, you are usually working with the concept of a "Security Group".
