@@ -52,87 +52,164 @@ aws ec2 create-vpc \
 
 You'll want to note down the `VpcId` for later use.
 
+Next, we create a subnets for the VPC we just, using the same CIDR block:
+
+```sh
+aws ec2 create-subnet \
+ --vpc-id vpc-0f4191f90bd8c4e71 \
+ --cidr-block 10.240.0.0/24
+```
+
+```sh
+aws ec2 describe-subnets --filters Name="subnet-id",Values="subnet-0e41b90871027db5b"
+```
+
 ### Firewall Rules
 
 When dealing with Firewalls in AWS, you are usually working with the concept of a "Security Group".
 
-Create a firewall rule that allows internal communication across all protocols:
+Create a new security group and associate it with the VPC we created in the previous step
 
 ```sh
-gcloud compute firewall-rules create kubernetes-the-hard-way-allow-internal \
-  --allow tcp,udp,icmp \
-  --network kubernetes-the-hard-way \
-  --source-ranges 10.240.0.0/24,10.200.0.0/16
+aws ec2 create-security-group --group-name kubernetes-the-hard-way --description "Security group for Kubernetes the Hard Way cluster" --vpc-id vpc-0f4191f90bd8c4e71
 ```
 
-Create a firewall rule that allows external SSH, ICMP, and HTTPS:
+Note the `GroupId` in the output as we'll need it to create the firewall rules.
+
+Create an ingress firewall rule that allows external SSH, ICMP, and HTTPS on all IP address ranges:
 
 ```sh
-gcloud compute firewall-rules create kubernetes-the-hard-way-allow-external \
-  --allow tcp:22,tcp:6443,icmp \
-  --network kubernetes-the-hard-way \
-  --source-ranges 0.0.0.0/0
+aws ec2 authorize-security-group-ingress --group-id sg-0bd79e2e8238927ec --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges='[{CidrIp=0.0.0.0/0}]' IpProtocol=tcp,FromPort=6443,ToPort=6443,IpRanges='[{CidrIp=0.0.0.0/0}]' IpProtocol=icmp,FromPort=-1,ToPort=-1,IpRanges='[{CidrIp=0.0.0.0/0}]'
 ```
 
-> An [external load balancer](https://cloud.google.com/compute/docs/load-balancing/network/) will be used to expose the Kubernetes API Servers to remote clients.
+> no output
 
-List the firewall rules in the `kubernetes-the-hard-way` VPC network:
+> An [external network load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html/) will be used to expose the Kubernetes API Servers to remote clients.
+
+List the firewall rules in our VPC network security group:
 
 ```sh
-gcloud compute firewall-rules list --filter="network:kubernetes-the-hard-way"
+aws ec2 describe-security-groups --group-ids sg-0bd79e2e8238927ec
 ```
 
 > output
 
-```
-NAME                                    NETWORK                  DIRECTION  PRIORITY  ALLOW                 DENY  DISABLED
-kubernetes-the-hard-way-allow-external  kubernetes-the-hard-way  INGRESS    1000      tcp:22,tcp:6443,icmp        False
-kubernetes-the-hard-way-allow-internal  kubernetes-the-hard-way  INGRESS    1000      tcp,udp,icmp                Fals
+```json
+{
+  "SecurityGroups": [
+    {
+      "Description": "Security group for Kubernetes the Hard Way cluster",
+      "GroupName": "kubernetes-the-hard-way",
+      "IpPermissions": [
+        {
+          "FromPort": 6443,
+          "IpProtocol": "tcp",
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "ToPort": 6443,
+          "UserIdGroupPairs": []
+        },
+        {
+          "FromPort": 22,
+          "IpProtocol": "tcp",
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "ToPort": 22,
+          "UserIdGroupPairs": []
+        },
+        {
+          "FromPort": -1,
+          "IpProtocol": "icmp",
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "ToPort": -1,
+          "UserIdGroupPairs": []
+        }
+      ],
+      "OwnerId": "365014073076",
+      "GroupId": "sg-0bd79e2e8238927ec",
+      "IpPermissionsEgress": [
+        {
+          "IpProtocol": "-1",
+          "IpRanges": [
+            {
+              "CidrIp": "0.0.0.0/0"
+            }
+          ],
+          "Ipv6Ranges": [],
+          "PrefixListIds": [],
+          "UserIdGroupPairs": []
+        }
+      ],
+      "VpcId": "vpc-0f4191f90bd8c4e71"
+    }
+  ]
+}
 ```
 
 ### Kubernetes Public IP Address
 
-Allocate a static IP address that will be attached to the external load balancer fronting the Kubernetes API Servers:
+Allocate a static IP address that will be attached to the external load balancer fronting the Kubernetes API Servers. Within AWS, this is know as an Elastic IP:
 
 ```sh
-gcloud compute addresses create kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region)
+aws ec2 allocate-address \
+    --domain vpc
 ```
 
-Verify the `kubernetes-the-hard-way` static IP address was created in your default compute region:
+> note the `AllocationId`
 
-```
-gcloud compute addresses list --filter="name=('kubernetes-the-hard-way')"
-```
+### Create the Network Load Balancer (WIP)
 
-> output
+Now we create the network load balancer for the Kubernetes API Server. We'll associate the Elastic IP we just created in the same step.
 
-```
-NAME                     ADDRESS/RANGE   TYPE      PURPOSE  NETWORK  REGION    SUBNET  STATUS
-kubernetes-the-hard-way  XX.XXX.XXX.XXX  EXTERNAL                    us-west1          RESERVED
+```sh
+aws elbv2 create-load-balancer
+  --name kube-api-load-balancer \
+  --type network \
+AllocationId=eipalloc-036baba860059d83
 ```
 
 ## Compute Instances
 
-The compute instances in this lab will be provisioned using [Ubuntu Server](https://www.ubuntu.com/server) 20.04, which has good support for the [containerd container runtime](https://github.com/containerd/containerd). Each compute instance will be provisioned with a fixed private IP address to simplify the Kubernetes bootstrapping process.
+The compute instances in this lab will be provisioned using [Ubuntu Server](https://www.ubuntu.com/server) 20.04 (`ami-0885b1f6bd170450c`), which has good support for the [containerd container runtime](https://github.com/containerd/containerd). Each compute instance will be provisioned with a fixed private IP address to simplify the Kubernetes bootstrapping process.
 
 ### Kubernetes Controllers
 
+First, create a key pair to provide us with ssh access to the control plan nodes. We'll save the file to our local directory:
+
+```sh
+aws ec2 create-key-pair --key-name controlPlane --output text > controlPlane.pem
+```
+
 Create three compute instances which will host the Kubernetes control plane:
 
-```
+```sh
 for i in 0 1 2; do
-  gcloud compute instances create controller-${i} \
-    --async \
-    --boot-disk-size 200GB \
-    --can-ip-forward \
-    --image-family ubuntu-2004-lts \
-    --image-project ubuntu-os-cloud \
-    --machine-type e2-standard-2 \
-    --private-network-ip 10.240.0.1${i} \
-    --scopes compute-rw,storage-ro,service-management,service-control,logging-write,monitoring \
-    --subnet kubernetes \
-    --tags kubernetes-the-hard-way,controller
+aws ec2 run-instances \
+    --image-id ami-0885b1f6bd170450c \
+    --instance-type t2.micro \
+    --count 1 \
+    --subnet-id subnet-0e41b90871027db5b \
+    --key-name controlPlane \
+    --security-group-ids sg-0bd79e2e8238927ec \
+    --private-ip-address 10.240.0.1${i} \
+    --block-device-mappings 'DeviceName=/dev/sdh,Ebs={DeleteOnTermination=true,VolumeSize=100}' \
+    --tag-specifications 'ResourceType=instance,Tags=[{Key=project,Value=kubernetes-the-hard-way},{Key=nodeType, Value=controlPlane}]' 'ResourceType=volume,Tags=[{Key=project,Value=kubernetes-the-hard-way},{Key=nodeType, Value=controlPlane}]'
 done
 ```
 
@@ -144,7 +221,7 @@ Each worker instance requires a pod subnet allocation from the Kubernetes cluste
 
 Create three compute instances which will host the Kubernetes worker nodes:
 
-```
+```sh
 for i in 0 1 2; do
   gcloud compute instances create worker-${i} \
     --async \
@@ -171,7 +248,7 @@ gcloud compute instances list --filter="tags.items=kubernetes-the-hard-way"
 
 > output
 
-```
+```sh
 NAME          ZONE        MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
 controller-0  us-west1-c  e2-standard-2               10.240.0.10  XX.XX.XX.XXX   RUNNING
 controller-1  us-west1-c  e2-standard-2               10.240.0.11  XX.XXX.XXX.XX  RUNNING
@@ -187,13 +264,13 @@ SSH will be used to configure the controller and worker instances. When connecti
 
 Test SSH access to the `controller-0` compute instances:
 
-```
+```sh
 gcloud compute ssh controller-0
 ```
 
 If this is your first time connecting to a compute instance SSH keys will be generated for you. Enter a passphrase at the prompt to continue:
 
-```
+```sh
 WARNING: The public SSH key file for gcloud does not exist.
 WARNING: The private SSH key file for gcloud does not exist.
 WARNING: You do not have an SSH key for gcloud.
@@ -205,7 +282,7 @@ Enter same passphrase again:
 
 At this point the generated SSH keys will be uploaded and stored in your project:
 
-```
+```sh
 Your identification has been saved in /home/$USER/.ssh/google_compute_engine.
 Your public key has been saved in /home/$USER/.ssh/google_compute_engine.pub.
 The key fingerprint is:
@@ -229,20 +306,20 @@ Waiting for SSH key to propagate.
 
 After the SSH keys have been updated you'll be logged into the `controller-0` instance:
 
-```
+```sh
 Welcome to Ubuntu 20.04 LTS (GNU/Linux 5.4.0-1019-gcp x86_64)
 ...
 ```
 
 Type `exit` at the prompt to exit the `controller-0` compute instance:
 
-```
+```sh
 $USER@controller-0:~$ exit
 ```
 
 > output
 
-```
+```sh
 logout
 Connection to XX.XX.XX.XXX closed
 ```
