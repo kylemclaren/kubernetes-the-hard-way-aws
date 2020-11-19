@@ -1,3 +1,4 @@
+*.pem
 admin-csr.json             
 admin-key.pem              
 admin.csr                  
