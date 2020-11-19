@@ -164,18 +164,15 @@ aws ec2 describe-security-groups --group-ids sg-0bd79e2e8238927ec
 
 ### Kubernetes Public IP Address
 
-Allocate a static IP address that will be attached to the external load balancer fronting the Kubernetes API Servers:
+Allocate a static IP address that will be attached to the external load balancer fronting the Kubernetes API Servers. Within AWS, this is know as an Elastic IP:
 
 ```sh
-gcloud compute addresses create kubernetes-the-hard-way \
-  --region $(gcloud config get-value compute/region)
+aws ec2 allocate-address \
+    --domain vpc
 ```
 
-Verify the `kubernetes-the-hard-way` static IP address was created in your default compute region:
+> note the `AllocationId`
 
-```
-gcloud compute addresses list --filter="name=('kubernetes-the-hard-way')"
-```
 
 > output
 
