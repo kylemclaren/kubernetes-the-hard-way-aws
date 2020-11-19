@@ -74,13 +74,12 @@ Create a new security group and associate it with the VPC we created in the prev
 aws ec2 create-security-group --group-name kubernetes-the-hard-way --description "Security group for Kubernetes the Hard Way cluster" --vpc-id vpc-0f4191f90bd8c4e71
 ```
 
-Create a firewall rule that allows external SSH, ICMP, and HTTPS:
+Note the `GroupId` in the output as we'll need it to create the firewall rules.
+
+Create an ingress firewall rule that allows external SSH, ICMP, and HTTPS on all IP address ranges:
 
 ```sh
-gcloud compute firewall-rules create kubernetes-the-hard-way-allow-external \
-  --allow tcp:22,tcp:6443,icmp \
-  --network kubernetes-the-hard-way \
-  --source-ranges 0.0.0.0/0
+aws ec2 authorize-security-group-ingress --group-id sg-0bd79e2e8238927ec --ip-permissions IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges='[{CidrIp=0.0.0.0/0}]' IpProtocol=tcp,FromPort=6443,ToPort=6443,IpRanges='[{CidrIp=0.0.0.0/0}]' IpProtocol=icmp,FromPort=-1,ToPort=-1,IpRanges='[{CidrIp=0.0.0.0/0}]'
 ```
 
 > An [external load balancer](https://cloud.google.com/compute/docs/load-balancing/network/) will be used to expose the Kubernetes API Servers to remote clients.
