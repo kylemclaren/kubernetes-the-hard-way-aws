@@ -84,10 +84,12 @@ aws ec2 authorize-security-group-ingress --group-id sg-0bd79e2e8238927ec --ip-pe
 
 > An [external load balancer](https://cloud.google.com/compute/docs/load-balancing/network/) will be used to expose the Kubernetes API Servers to remote clients.
 
-List the firewall rules in the `kubernetes-the-hard-way` VPC network:
+> An [external network load balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html/) will be used to expose the Kubernetes API Servers to remote clients.
+
+List the firewall rules in our VPC network security group:
 
 ```sh
-gcloud compute firewall-rules list --filter="network:kubernetes-the-hard-way"
+aws ec2 describe-security-groups --group-ids sg-0bd79e2e8238927ec
 ```
 
 > output
