@@ -183,25 +183,30 @@ kubernetes-the-hard-way  XX.XXX.XXX.XXX  EXTERNAL                    us-west1   
 
 ## Compute Instances
 
-The compute instances in this lab will be provisioned using [Ubuntu Server](https://www.ubuntu.com/server) 20.04, which has good support for the [containerd container runtime](https://github.com/containerd/containerd). Each compute instance will be provisioned with a fixed private IP address to simplify the Kubernetes bootstrapping process.
+The compute instances in this lab will be provisioned using [Ubuntu Server](https://www.ubuntu.com/server) 20.04 (`ami-0885b1f6bd170450c`), which has good support for the [containerd container runtime](https://github.com/containerd/containerd). Each compute instance will be provisioned with a fixed private IP address to simplify the Kubernetes bootstrapping process.
 
 ### Kubernetes Controllers
 
+First, create a key pair to provide us with ssh access to the control plan nodes. We'll save the file to our local directory:
+
+```sh
+aws ec2 create-key-pair --key-name controlPlane --output text > controlPlane.pem
+```
+
 Create three compute instances which will host the Kubernetes control plane:
 
-```
+```sh
 for i in 0 1 2; do
-  gcloud compute instances create controller-${i} \
-    --async \
-    --boot-disk-size 200GB \
-    --can-ip-forward \
-    --image-family ubuntu-2004-lts \
-    --image-project ubuntu-os-cloud \
-    --machine-type e2-standard-2 \
-    --private-network-ip 10.240.0.1${i} \
-    --scopes compute-rw,storage-ro,service-management,service-control,logging-write,monitoring \
-    --subnet kubernetes \
-    --tags kubernetes-the-hard-way,controller
+aws ec2 run-instances \
+    --image-id ami-0885b1f6bd170450c \
+    --instance-type t2.micro \
+    --count 1 \
+    --subnet-id subnet-0e41b90871027db5b \
+    --key-name controlPlane \
+    --security-group-ids sg-0bd79e2e8238927ec \
+    --private-ip-address 10.240.0.1${i} \
+    --block-device-mappings 'DeviceName=/dev/sdh,Ebs={DeleteOnTermination=true,VolumeSize=100}' \
+    --tag-specifications 'ResourceType=instance,Tags=[{Key=project,Value=kubernetes-the-hard-way},{Key=nodeType, Value=controlPlane}]' 'ResourceType=volume,Tags=[{Key=project,Value=kubernetes-the-hard-way},{Key=nodeType, Value=controlPlane}]'
 done
 ```
 
