@@ -61,7 +61,8 @@ aws ec2 create-subnet \
 ```
 
 ```sh
-aws ec2 describe-subnets --filters Name="subnet-id",Values="subnet-0e41b90871027db5b"
+aws ec2 describe-subnets \
+  --filters Name="subnet-id",Values="subnet-0e41b90871027db5b"
 ```
 
 ### Firewall Rules
@@ -71,7 +72,10 @@ When dealing with Firewalls in AWS, you are usually working with the concept of 
 Create a new security group and associate it with the VPC we created in the previous step
 
 ```sh
-aws ec2 create-security-group --group-name kubernetes-the-hard-way --description "Security group for Kubernetes the Hard Way cluster" --vpc-id vpc-0f4191f90bd8c4e71
+aws ec2 create-security-group \
+  --group-name kubernetes-the-hard-way \
+  --description "Security group for Kubernetes the Hard Way cluster" \
+  --vpc-id vpc-0f4191f90bd8c4e71
 ```
 
 Note the `GroupId` in the output as we'll need it to create the firewall rules.
@@ -89,7 +93,8 @@ aws ec2 authorize-security-group-ingress --group-id sg-0bd79e2e8238927ec --ip-pe
 List the firewall rules in our VPC network security group:
 
 ```sh
-aws ec2 describe-security-groups --group-ids sg-0bd79e2e8238927ec
+aws ec2 describe-security-groups \
+  --group-ids sg-0bd79e2e8238927ec
 ```
 
 > output
@@ -168,7 +173,7 @@ Allocate a static IP address that will be attached to the external load balancer
 
 ```sh
 aws ec2 allocate-address \
-    --domain vpc
+  --domain vpc
 ```
 
 > note the `AllocationId`
@@ -190,7 +195,9 @@ The compute instances in this lab will be provisioned using [Ubuntu Server](http
 First, create a key pair to provide us with ssh access to the control plan nodes. We'll save the file to our local directory:
 
 ```sh
-aws ec2 create-key-pair --key-name k8sHardWay --output text > k8sHardWay.pem
+aws ec2 create-key-pair \
+  --key-name k8sHardWay \
+  --output text > k8sHardWay.pem
 ```
 
 Create three compute instances which will host the Kubernetes control plane:
