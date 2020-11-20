@@ -239,19 +239,27 @@ done
 List the compute instances we've just created:
 
 ```sh
-aws ec2 describe-instances --filter Name=tag:project,Values=kubernetes-the-hard-way
+aws ec2 describe-instances \
+  --filters Name=tag:project,Values=kubernetes-the-hard-way \
+  --query 'Reservations[*].Instances[*].{Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key==`Name`]|[0].Value,InternalIP:PrivateIpAddress,ExternalIP:PublicIpAddress,Status:State.Name}' \
+  --output table
 ```
 
 > output
 
-```
-NAME          ZONE        MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
-controller-0  us-west1-c  e2-standard-2               10.240.0.10  XX.XX.XX.XXX   RUNNING
-controller-1  us-west1-c  e2-standard-2               10.240.0.11  XX.XXX.XXX.XX  RUNNING
-controller-2  us-west1-c  e2-standard-2               10.240.0.12  XX.XXX.XX.XXX  RUNNING
-worker-0      us-west1-c  e2-standard-2               10.240.0.20  XX.XX.XXX.XXX  RUNNING
-worker-1      us-west1-c  e2-standard-2               10.240.0.21  XX.XX.XX.XXX   RUNNING
-worker-2      us-west1-c  e2-standard-2               10.240.0.22  XX.XXX.XX.XX   RUNNING
+```txt
+-----------------------------------------------------------------------------------------------
+|                                      DescribeInstances                                      |
++------------+-------------+----------------------+--------------+----------------+-----------+
+|     AZ     | ExternalIP  |      Instance        | InternalIP   |     Name       |  Status   |
++------------+-------------+----------------------+--------------+----------------+-----------+
+|  us-east-1f|  None       |  i-003c3bd0a883e9b3b |  10.240.0.11 |  controller-1  |  running  |
+|  us-east-1f|  None       |  i-0459bfbc79de2877b |  10.240.0.12 |  controller-2  |  running  |
+|  us-east-1f|  None       |  i-0b9d0a54b268d3d42 |  10.240.0.10 |  controller-0  |  running  |
+|  us-east-1f|  None       |  i-045ed5daf55a9a47b |  10.240.0.20 |  worker-0      |  running  |
+|  us-east-1f|  None       |  i-015ac68455ba3b1d5 |  10.240.0.21 |  worker-1      |  running  |
+|  us-east-1f|  None       |  i-09f7aa65a9df1b4a9 |  10.240.0.22 |  worker-2      |  running  |
++------------+-------------+----------------------+--------------+----------------+-----------+
 ```
 
 ## Configuring SSH Access
