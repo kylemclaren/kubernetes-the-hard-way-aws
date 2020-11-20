@@ -190,7 +190,7 @@ The compute instances in this lab will be provisioned using [Ubuntu Server](http
 First, create a key pair to provide us with ssh access to the control plan nodes. We'll save the file to our local directory:
 
 ```sh
-aws ec2 create-key-pair --key-name controlPlane --output text > controlPlane.pem
+aws ec2 create-key-pair --key-name k8sHardWay --output text > k8sHardWay.pem
 ```
 
 Create three compute instances which will host the Kubernetes control plane:
