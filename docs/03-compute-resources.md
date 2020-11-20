@@ -236,10 +236,10 @@ done
 
 ### Verification
 
-List the compute instances in your default compute zone:
+List the compute instances we've just created:
 
-```
-gcloud compute instances list --filter="tags.items=kubernetes-the-hard-way"
+```sh
+aws ec2 describe-instances --filter Name=tag:project,Values=kubernetes-the-hard-way
 ```
 
 > output
