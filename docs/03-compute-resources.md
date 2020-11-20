@@ -205,7 +205,7 @@ for i in 0 1 2; do
       --key-name k8sHardWay \
       --security-group-ids sg-0bd79e2e8238927ec \
       --private-ip-address 10.240.0.1${i} \
-      --block-device-mappings 'DeviceName=/dev/sdh,Ebs={DeleteOnTermination=true,VolumeSize=100}' \
+      --block-device-mappings "DeviceName=/dev/sdh,Ebs={DeleteOnTermination=true,VolumeSize=100}" \
       --tag-specifications "ResourceType=instance,Tags=[{Key=project,Value=kubernetes-the-hard-way},{Key=nodeType,Value=controlPlane},{Key=Name,Value=controller${i}}]" "ResourceType=volume,Tags=[{Key=project,Value=kubernetes-the-hard-way},{Key=nodeType,Value=controlPlane}]"
 done
 ```
