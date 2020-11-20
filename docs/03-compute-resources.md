@@ -218,20 +218,19 @@ Each worker instance requires a pod subnet allocation from the Kubernetes cluste
 
 Create three compute instances which will host the Kubernetes worker nodes:
 
-```
+```sh
 for i in 0 1 2; do
-  gcloud compute instances create worker-${i} \
-    --async \
-    --boot-disk-size 200GB \
-    --can-ip-forward \
-    --image-family ubuntu-2004-lts \
-    --image-project ubuntu-os-cloud \
-    --machine-type e2-standard-2 \
-    --metadata pod-cidr=10.200.${i}.0/24 \
-    --private-network-ip 10.240.0.2${i} \
-    --scopes compute-rw,storage-ro,service-management,service-control,logging-write,monitoring \
-    --subnet kubernetes \
-    --tags kubernetes-the-hard-way,worker
+  aws ec2 run-instances \
+      --image-id ami-0885b1f6bd170450c \
+      --instance-type t2.micro \
+      --count 1 \
+      --subnet-id subnet-0e41b90871027db5b \
+      --key-name k8sHardWay \
+      --security-group-ids sg-0bd79e2e8238927ec \
+      --private-ip-address 10.240.0.2${i} \
+      --user-data pod-cidr=10.200.${i}.0/24 \
+      --block-device-mappings "DeviceName=/dev/sdh,Ebs={DeleteOnTermination=true,VolumeSize=100}" \
+      --tag-specifications "ResourceType=instance,Tags=[{Key=project,Value=kubernetes-the-hard-way},{Key=nodeType, Value=worker},{Key=Name,Value=worker${i}}]" "ResourceType=volume,Tags=[{Key=project,Value=kubernetes-the-hard-way},{Key=nodeType, Value=worker}]"
 done
 ```
 
