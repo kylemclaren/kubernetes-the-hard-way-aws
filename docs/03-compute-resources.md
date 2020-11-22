@@ -271,70 +271,31 @@ aws ec2 describe-instances \
 +------------+-------------+----------------------+--------------+----------------+-----------+
 ```
 
-## Configuring SSH Access
+## SSH Access
 
-SSH will be used to configure the controller and worker instances. When connecting to compute instances for the first time SSH keys will be generated for you and stored in the project or instance metadata as described in the [connecting to instances](https://cloud.google.com/compute/docs/instances/connecting-to-instance) documentation.
+SSH will be used to configure the controller and worker instances. Use the `.pem` key we created with the `create-key-pair` command earlier to auth t the instances. First though, some housekeeping with permisisons for the key file:
+
+```sh
+chmod 400 k8sHardWay.pem
+```
 
 Test SSH access to the `controller-0` compute instances:
 
-```
-gcloud compute ssh controller-0
-```
-
-If this is your first time connecting to a compute instance SSH keys will be generated for you. Enter a passphrase at the prompt to continue:
-
-```
-WARNING: The public SSH key file for gcloud does not exist.
-WARNING: The private SSH key file for gcloud does not exist.
-WARNING: You do not have an SSH key for gcloud.
-WARNING: SSH keygen will be executed to generate a key.
-Generating public/private rsa key pair.
-Enter passphrase (empty for no passphrase):
-Enter same passphrase again:
+```sh
+ssh -i "k8sHardWay.pem" ubuntu@ec2-your-external-ip-address.us-east-1.compute.amazonaws.com
 ```
 
-At this point the generated SSH keys will be uploaded and stored in your project:
+If this is your first time connecting to a compute instance, you'll be asked to X*X_X*. You'll then be logged into the `controller-0` instance:
 
-```
-Your identification has been saved in /home/$USER/.ssh/google_compute_engine.
-Your public key has been saved in /home/$USER/.ssh/google_compute_engine.pub.
-The key fingerprint is:
-SHA256:nz1i8jHmgQuGt+WscqP5SeIaSy5wyIJeL71MuV+QruE $USER@$HOSTNAME
-The key's randomart image is:
-+---[RSA 2048]----+
-|                 |
-|                 |
-|                 |
-|        .        |
-|o.     oS        |
-|=... .o .o o     |
-|+.+ =+=.+.X o    |
-|.+ ==O*B.B = .   |
-| .+.=EB++ o      |
-+----[SHA256]-----+
-Updating project ssh metadata...-Updated [https://www.googleapis.com/compute/v1/projects/$PROJECT_ID].
-Updating project ssh metadata...done.
-Waiting for SSH key to propagate.
-```
-
-After the SSH keys have been updated you'll be logged into the `controller-0` instance:
-
-```
+```sh
 Welcome to Ubuntu 20.04 LTS (GNU/Linux 5.4.0-1019-gcp x86_64)
 ...
 ```
 
 Type `exit` at the prompt to exit the `controller-0` compute instance:
 
-```
+```sh
 $USER@controller-0:~$ exit
-```
-
-> output
-
-```
-logout
-Connection to XX.XX.XX.XXX closed
 ```
 
 Next: [Provisioning a CA and Generating TLS Certificates](04-certificate-authority.md)
